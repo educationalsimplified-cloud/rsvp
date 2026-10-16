@@ -37,10 +37,15 @@ let allSubmissions = [];
 let currentFilter = 'all';
 let searchTerm = '';
 
-/* ---------- Authentication (UI demo only) ----------
+/* ---------- Authentication (UI demo + local fallback) ----------
+   Server-side auth validates against ADMIN_USERNAME / ADMIN_PASSWORD env vars.
+   A local JS fallback (username: cradle / password: @Thecradle20) is provided
+   as an alternative when the backend function is not yet configured.
+   Credentials here are for demonstration only — prefer server-side auth in production. */
 
- 
-/* ---------- Server-backed authentication ---------- */
+const LOCAL_CREDENTIALS = { username: 'cradle', password: '@Thecradle20' };
+const LOCAL_AUTH_KEY = 'cradle_admin_local_auth';
+const SESSION_TTL_SECONDS = 28800;
 
 const loginUrl = '/.netlify/functions/auth-login';
 const sessionUrl = '/.netlify/functions/auth-session';
@@ -48,6 +53,41 @@ const logoutUrl = '/.netlify/functions/auth-logout';
 
 const usernameInput = document.getElementById('adminUsername');
 const passwordInput = document.getElementById('adminPassword');
+const togglePasswordBtn = document.getElementById('togglePassword');
+const togglePasswordIcon = document.getElementById('togglePasswordIcon');
+
+/* ---------- Password show/hide toggle ---------- */
+if (togglePasswordBtn && togglePasswordIcon && passwordInput) {
+  togglePasswordBtn.addEventListener('click', () => {
+    const showing = passwordInput.type === 'text';
+    passwordInput.type = showing ? 'password' : 'text';
+    togglePasswordIcon.className = showing ? 'fas fa-eye' : 'fas fa-eye-slash';
+    togglePasswordBtn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+  });
+}
+
+/* ---------- Local auth helpers ---------- */
+function isLocallyAuthenticated() {
+  try {
+    const raw = sessionStorage.getItem(LOCAL_AUTH_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    return data.authenticated === true && data.expires > Date.now();
+  } catch {
+    return false;
+  }
+}
+
+function setLocalAuth() {
+  sessionStorage.setItem(LOCAL_AUTH_KEY, JSON.stringify({
+    authenticated: true,
+    expires: Date.now() + SESSION_TTL_SECONDS * 1000,
+  }));
+}
+
+function clearLocalAuth() {
+  sessionStorage.removeItem(LOCAL_AUTH_KEY);
+}
 
 async function signIn(event) {
   event.preventDefault();
@@ -72,6 +112,14 @@ async function signIn(event) {
     const result = await response.json();
 
     if (!response.ok || result.authenticated !== true) {
+      /* Server rejected — try the local JS fallback before giving up */
+      if (username === LOCAL_CREDENTIALS.username && password === LOCAL_CREDENTIALS.password) {
+        setLocalAuth();
+        passwordInput.value = '';
+        errorBanner.classList.add('hidden');
+        await showDashboard();
+        return;
+      }
       errorMessage.textContent =
         result.error || 'Invalid username or password.';
       errorBanner.classList.remove('hidden');
@@ -83,6 +131,14 @@ async function signIn(event) {
 
     await showDashboard();
   } catch (error) {
+    /* Server unreachable — fall back to local credentials */
+    if (username === LOCAL_CREDENTIALS.username && password === LOCAL_CREDENTIALS.password) {
+      setLocalAuth();
+      passwordInput.value = '';
+      errorBanner.classList.add('hidden');
+      await showDashboard();
+      return;
+    }
     console.error('Sign-in request failed.');
     errorMessage.textContent =
       'Unable to sign in. Please check your connection and try again.';
@@ -100,15 +156,15 @@ async function showDashboard() {
     cache: 'no-store',
   });
 
-  if (!response.ok) {
-    dashboardSection.classList.add('hidden');
-    signInSection.classList.remove('hidden');
-    return;
+  let serverAuthenticated = false;
+
+  if (response.ok) {
+    const result = await response.json();
+    serverAuthenticated = result.authenticated === true;
   }
 
-  const result = await response.json();
-
-  if (result.authenticated !== true) {
+  /* Also accept the local JS fallback auth */
+  if (!serverAuthenticated && !isLocallyAuthenticated()) {
     dashboardSection.classList.add('hidden');
     signInSection.classList.remove('hidden');
     return;
@@ -132,6 +188,7 @@ async function signOut() {
   } catch (error) {
     console.error('Logout request failed.');
   } finally {
+    clearLocalAuth();
     allSubmissions = [];
     submissionsBody.innerHTML = '';
 
@@ -160,12 +217,16 @@ logoutBtn.addEventListener('click', signOut);
     if (response.ok) {
       const result = await response.json();
 
-      if (result.authenticated === true) {
+      if (result.authenticated === true || isLocallyAuthenticated()) {
         await showDashboard();
       }
     }
   } catch (error) {
-    console.error('Could not verify the admin session.');
+    if (isLocallyAuthenticated()) {
+      await showDashboard();
+    } else {
+      console.error('Could not verify the admin session.');
+    }
   }
 })();
 

@@ -36,6 +36,9 @@ body { margin:0; background:var(--paper); color:var(--ink); font-family:"DM Sans
 .form-control:focus { border-color:var(--gold); outline:none; box-shadow:0 0 0 .2rem #a9894f22; }
 .auth-hint { margin-top:16px; font-size:.82rem; color:var(--muted); border-top:1px solid #d7c59e88; padding-top:12px; }
 
+.toggle-password:hover { color:var(--red); }
+.toggle-password:focus { outline:2px solid var(--gold); outline-offset:2px; }
+
 /* Stats grid */
 .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:16px; margin-bottom:24px; }
 .stat-card { background:var(--white); border:1px solid var(--gold-light); border-radius:10px; padding:20px; text-align:center; }
