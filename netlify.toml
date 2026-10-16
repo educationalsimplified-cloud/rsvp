@@ -1,0 +1,16 @@
+# Netlify configuration — The Cradle Schools 20th Anniversary
+
+[build]
+  publish = "."
+
+[[redirects]]
+  # Route dashboard function calls
+  src = "/.netlify/functions/rsvps"
+  dest = "/.netlify/functions/rsvps"
+  status = 200
+
+# Optional: serve dashboard at a clean path
+# [[redirects]]
+#   src = "/admin"
+#   dest = "/dashboard.html"
+#   status = 200
