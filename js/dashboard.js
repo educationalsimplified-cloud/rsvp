@@ -39,32 +39,136 @@ let searchTerm = '';
 
 /* ---------- Authentication (UI demo only) ----------
 
-   Real admin access must be enforced on the server:
-   - Netlify Function validates a session cookie / JWT.
-   - Admin credentials compared against environment variables.
-   - Rate limiting on sign-in attempts.
-   Nothing secret is stored here; this toggle only demonstrates
-   the UI flow until the backend function is wired. */
+ 
+/* ---------- Server-backed authentication ---------- */
 
-function signIn(event) {
+const loginUrl = '/.netlify/functions/auth-login';
+const sessionUrl = '/.netlify/functions/auth-session';
+const logoutUrl = '/.netlify/functions/auth-logout';
+
+const usernameInput = document.getElementById('adminUsername');
+const passwordInput = document.getElementById('adminPassword');
+
+async function signIn(event) {
   event.preventDefault();
+
+  const username = usernameInput.value;
+  const password = passwordInput.value;
+
   signInBtn.disabled = true;
   signInBtn.textContent = 'Signing in…';
-  setTimeout(() => {
-    signInSection.classList.add('hidden');
-    dashboardSection.classList.remove('hidden');
-    loadSubmissions();
-  }, 600);
+
+  try {
+    const response = await fetch(loginUrl, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, password }),
+      cache: 'no-store',
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || result.authenticated !== true) {
+      errorMessage.textContent =
+        result.error || 'Invalid username or password.';
+      errorBanner.classList.remove('hidden');
+      return;
+    }
+
+    passwordInput.value = '';
+    errorBanner.classList.add('hidden');
+
+    await showDashboard();
+  } catch (error) {
+    console.error('Sign-in request failed.');
+    errorMessage.textContent =
+      'Unable to sign in. Please check your connection and try again.';
+    errorBanner.classList.remove('hidden');
+  } finally {
+    signInBtn.disabled = false;
+    signInBtn.textContent = 'Sign in';
+  }
 }
 
-function signOut() {
-  dashboardSection.classList.add('hidden');
-  signInSection.classList.remove('hidden');
-  signInForm.reset();
+async function showDashboard() {
+  const response = await fetch(sessionUrl, {
+    method: 'GET',
+    credentials: 'same-origin',
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    dashboardSection.classList.add('hidden');
+    signInSection.classList.remove('hidden');
+    return;
+  }
+
+  const result = await response.json();
+
+  if (result.authenticated !== true) {
+    dashboardSection.classList.add('hidden');
+    signInSection.classList.remove('hidden');
+    return;
+  }
+
+  signInSection.classList.add('hidden');
+  dashboardSection.classList.remove('hidden');
+
+  await loadSubmissions();
+}
+
+async function signOut() {
+  logoutBtn.disabled = true;
+
+  try {
+    await fetch(logoutUrl, {
+      method: 'POST',
+      credentials: 'same-origin',
+      cache: 'no-store',
+    });
+  } catch (error) {
+    console.error('Logout request failed.');
+  } finally {
+    allSubmissions = [];
+    submissionsBody.innerHTML = '';
+
+    dashboardSection.classList.add('hidden');
+    signInSection.classList.remove('hidden');
+    signInForm.reset();
+
+    logoutBtn.disabled = false;
+  }
 }
 
 signInForm.addEventListener('submit', signIn);
 logoutBtn.addEventListener('click', signOut);
+
+// Check the server session when the page opens or reloads.
+(async function initializeDashboard() {
+  dashboardSection.classList.add('hidden');
+  signInSection.classList.remove('hidden');
+
+  try {
+    const response = await fetch(sessionUrl, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+
+      if (result.authenticated === true) {
+        await showDashboard();
+      }
+    }
+  } catch (error) {
+    console.error('Could not verify the admin session.');
+  }
+})();
+ 
 
 /* ---------- Data loading ---------- */
 

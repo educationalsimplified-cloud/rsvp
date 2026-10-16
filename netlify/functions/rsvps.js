@@ -1,67 +1,85 @@
+
 /*
  * netlify/functions/rsvps.js
- *
- * Server-side endpoint used by the admin dashboard (GET) to list RSVP
- * submissions. Netlify Functions run on Netlify's infrastructure so
- * secrets never reach the browser.
- *
- * Required Netlify environment variables (set in Site settings > Build & deploy > Environment):
- *   NETLIFY_API_TOKEN  – personal access token with forms:read scope
- *
- * How it works:
- *   1. Reads NETLIFY_API_TOKEN from environment (never hard-coded).
- *   2. Calls the Netlify API: GET /api/v1/sites/{site_id}/submissions?form_name=contact
- *   3. Returns the submissions as JSON to the dashboard.
- *
- * Authentication for the admin dashboard itself (sign-in, session cookie,
- * rate limiting, password hashing) must be added here or in a separate
- * /api/auth function before this endpoint is exposed publicly. Until then,
- * this stub returns an empty array so the dashboard UI can be reviewed.
+ * Protected admin endpoint for RSVP submissions.
  */
 
-export default async function handler(request, context) {
-  // Only allow the dashboard origin in production; adjust as needed.
+import {
+  verifySession,
+  jsonResponse,
+} from './auth-utils.mjs';
+
+export default async function handler(request) {
   if (request.method !== 'GET') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse(
+      { error: 'Method not allowed' },
+      405,
+      { Allow: 'GET' }
+    );
+  }
+
+  // Never return guest information without a valid admin session.
+  if (!verifySession(request)) {
+    return jsonResponse(
+      { error: 'Authentication required. Please sign in.' },
+      401
+    );
   }
 
   const apiToken = process.env.NETLIFY_API_TOKEN;
   const siteId = process.env.NETLIFY_SITE_ID;
 
+  // Missing backend configuration must not look like an empty guest list.
   if (!apiToken || !siteId) {
-    // Backend not configured yet: return empty list so the dashboard
-    // renders its empty state instead of crashing.
-    return new Response(JSON.stringify([]), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    console.error('RSVP backend environment variables are missing.');
+    return jsonResponse(
+      { error: 'RSVP service is not configured.' },
+      500
+    );
   }
 
   try {
     const response = await fetch(
-      `https://api.netlify.com/api/v1/sites/${siteId}/submissions?form_name=contact`,
+      `https://api.netlify.com/api/v1/sites/${encodeURIComponent(siteId)}/submissions?form_name=contact`,
       {
-        headers: { Authorization: `Bearer ${apiToken}` },
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+          Accept: 'application/json',
+        },
+        signal: AbortSignal.timeout(15000),
       }
     );
 
     if (!response.ok) {
-      throw new Error(`Netlify API responded ${response.status}`);
+      console.error(
+        'Netlify API request failed with status:',
+        response.status
+      );
+
+      return jsonResponse(
+        { error: 'Unable to retrieve RSVP submissions.' },
+        502
+      );
     }
 
     const submissions = await response.json();
-    return new Response(JSON.stringify(submissions), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+
+    if (!Array.isArray(submissions)) {
+      console.error('Unexpected response format from Netlify API.');
+      return jsonResponse(
+        { error: 'Unexpected response from RSVP service.' },
+        502
+      );
+    }
+
+    return jsonResponse(submissions);
   } catch (error) {
-    console.error(error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 502,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    console.error('RSVP retrieval failed:', error.message);
+
+    return jsonResponse(
+      { error: 'Unable to retrieve RSVP submissions.' },
+      502
+    );
   }
 }
