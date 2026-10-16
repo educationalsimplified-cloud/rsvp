@@ -24,8 +24,7 @@ export default async function handler(request) {
     { authenticated: false },
     200,
     {
-      'Set-Cookie': sessionCookie(request, '', 0)
-        .replace(`${COOKIE_NAME}=`, `${COOKIE_NAME}=`),
+      'Set-Cookie': sessionCookie(request, '', 0),
     }
   );
 }

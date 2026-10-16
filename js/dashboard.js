@@ -168,7 +168,8 @@ logoutBtn.addEventListener('click', signOut);
     console.error('Could not verify the admin session.');
   }
 })();
- 
+
+
 
 /* ---------- Data loading ---------- */
 
