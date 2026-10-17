@@ -69,7 +69,23 @@ body { margin:0; background:var(--paper); color:var(--ink); font-family:"DM Sans
 .slide-dots { display:flex; justify-content:center; gap:6px; }
 .slide-dot { width:10px; height:10px; border-radius:50%; background:#d9cfbd; cursor:pointer; border:none; padding:0; }
 .slide-dot.active { background:var(--gold); }
+/* ===== Slideshow images ===== */
+.slide-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
 
+.slideshow-wrap {
+  aspect-ratio: 16/9;
+}
+
+@media (max-width: 640px) {
+  .slideshow-wrap {
+    aspect-ratio: 4/4;
+  }
+}
 /* ===== Event details / map / dress code ===== */
 .detail-row { gap:10px; }
 .detail-icon { font-size:1.4rem; line-height:1; color:var(--gold); }
