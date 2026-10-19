@@ -247,20 +247,64 @@ async function loadSubmissions() {
     errorMessage.textContent = 'Could not load submissions. The backend function is not configured yet — see netlify/functions/rsvps.js.';
     errorBanner.classList.remove('hidden');
   }
+  console.log('DEBUG: Raw submissions from backend:', allSubmissions);
   render();
 }
 
 /* ---------- Rendering ---------- */
 
 function normalized(submission) {
+  // --- Normalize attendance value to Accepted / Declined / Pending ---
+  const rawAttendance =
+    submission.attendance ||
+    submission.attending ||
+    submission.status ||
+    submission.rsvp_status ||
+    submission.response ||
+    'Pending';
+
+  const attLower = String(rawAttendance || '').trim().toLowerCase();
+  let attendance = 'Pending';
+  if (
+    attLower === 'accepted' ||
+    attLower === 'yes' ||
+    attLower === 'y' ||
+    attLower === 'true' ||
+    attLower === '1' ||
+    attLower === 'attending' ||
+    attLower === 'i am attending'
+  ) {
+    attendance = 'Accepted';
+  } else if (
+    attLower === 'declined' ||
+    attLower === 'no' ||
+    attLower === 'n' ||
+    attLower === 'false' ||
+    attLower === '0' ||
+    attLower === 'declining' ||
+    attLower === 'i am not attending'
+  ) {
+    attendance = 'Declined';
+  }
+
+  // --- Check multiple possible field names for additional guests ---
+  const rawGuests =
+    submission.additional_guests ||
+    submission.extra_guests ||
+    submission.guests ||
+    submission.guest_count ||
+    submission.num_guests ||
+    submission.number_of_guests ||
+    0;
+
   return {
-    name: submission.name || submission.guest_name || '—',
+    name: submission.name || submission.guest_name || submission.full_name || '—',
     email: submission.email || '—',
-    contact: submission.contact || '—',
-    attendance: submission.attendance || 'Pending',
-    additional_guests: Number(submission.additional_guests || submission.extra_guests || 0),
-    message: submission.message || submission.guest_note || '',
-    created_at: submission.created_at || submission.submission_id || '—',
+    contact: submission.contact || submission.phone || submission.phone_number || '—',
+    attendance,
+    additional_guests: Number(rawGuests) || 0,
+    message: submission.message || submission.guest_note || submission.note || '',
+    created_at: submission.created_at || submission.submitted_at || submission.submission_id || '—',
     id: submission.id || submission.submission_id || submission.created_at || '',
   };
 }
