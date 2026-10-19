@@ -134,41 +134,55 @@ const calendarUrl = buildGoogleCalendarUrl();
 if (successAddToCalendarBtn) successAddToCalendarBtn.href = calendarUrl;
 
 if (form) {
+  /* Client-side duplicate prevention (same session). */
+  const DUP_KEY = 'cradle_rsvp_submitted';
+
   form.addEventListener('submit', function (event) {
     event.preventDefault();
 
     const myForm = event.target;
     const formData = new FormData(myForm);
+    const email = (formData.get('email') || '').trim().toLowerCase();
+    const contact = (formData.get('contact') || '').trim();
+
+    if (!email && !contact) {
+      alert('Please enter your email or phone number.');
+      return;
+    }
+
+    // Block duplicate submission in this session
+    if (sessionStorage.getItem(DUP_KEY)) {
+      alert('You have already registered. Please do not submit again.');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Already Submitted';
+      return;
+    }
 
     submitBtn.disabled = true;
     submitBtn.textContent = 'Submitting…';
     if (successMessage) successMessage.classList.add('hidden');
 
     /*
-     * Submit to Netlify Function (submit-rsvp) for duplicate checking.
+     * Netlify Forms AJAX submission.
      * Body is URL-encoded via FormData → URLSearchParams → string.
+     * Netlify Forms does NOT accept JSON bodies.
+     * Posts to "/" which Netlify intercepts at deploy time.
      */
-    fetch('/.netlify/functions/submit-rsvp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    fetch("/", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams(formData).toString()
     })
-      .then(response => response.json())
-      .then(result => {
-        if (result.error) {
-          // Duplicate or other error
-          alert(result.error);
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Submit RSVP';
-          return;
-        }
+      .then(() => {
         console.log("Form successfully submitted");
+        sessionStorage.setItem(DUP_KEY, 'true');
         myForm.reset();
         if (successMessage) {
           successMessage.classList.remove('hidden');
-          // Calendar option appears only after a successful registration
           if (successAddToCalendarBtn) successAddToCalendarBtn.href = calendarUrl;
         }
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitted';
       })
       .catch(error => {
         console.error(error);
