@@ -175,17 +175,30 @@
         <input type="hidden" name="subject" value="New RSVP from The Cradle Schools 20th Anniversary (%{submissionId})">
         <p class="hidden"><label>Leave this empty: <input name="bot-field"></label></p>
 
-        <div class="col-12">
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
             <label for="guestName" class="form-label">Full name *</label>
             <input class="form-control" id="guestName" name="name" autocomplete="name" required maxlength="120">
           </div>
-          <div class="col-12">
+          <div class="col-12 col-md-6">
             <label for="guestEmail" class="form-label">Email address *</label>
             <input class="form-control" id="guestEmail" type="email" name="email" autocomplete="email" required maxlength="160">
           </div>
-          <div class="col-12">
+          <div class="col-12 col-md-6">
             <label for="guestPhone" class="form-label">Phone number *</label>
             <input class="form-control" id="guestPhone" name="contact" autocomplete="tel" required maxlength="160" placeholder="Phone number">
+          </div>
+          <div class="col-12 col-md-6">
+            <label for="guestRole" class="form-label">Your role</label>
+            <select class="form-select" id="guestRole" name="role">
+              <option value="">Select a role</option>
+              <option value="Guest">Guest</option>
+              <option value="Parent">Parent</option>
+              <option value="Alumni Parent">Alumni Parent</option>
+              <option value="Alumni">Alumni</option>
+              <option value="Staff">Staff</option>
+            </select>
+          </div>
           <div class="col-12">
             <span class="form-label d-block mb-2">Your response *</span>
             <div class="d-flex flex-wrap gap-3">
@@ -209,9 +222,9 @@
           </div>
         </div>
       </form>
-        <div class="alert alert-success mt-4 hidden" id="successMessage" role="status">
-          Thank you. Your response has been submitted.
-        </div>
+      <div id="successMessage" class="alert alert-success mt-4 hidden" role="status">
+        Thank you. Your response has been submitted.
+      </div>
     </section>
     <footer class="text-center mt-4">The Cradle Schools · 20th Anniversary Celebration</footer>
   </main>
