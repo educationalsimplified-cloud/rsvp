@@ -175,30 +175,17 @@
         <input type="hidden" name="subject" value="New RSVP from The Cradle Schools 20th Anniversary (%{submissionId})">
         <p class="hidden"><label>Leave this empty: <input name="bot-field"></label></p>
 
-        <div class="row g-3">
-          <div class="col-12 col-md-6">
+        <div class="col-12">
             <label for="guestName" class="form-label">Full name *</label>
             <input class="form-control" id="guestName" name="name" autocomplete="name" required maxlength="120">
           </div>
-          <div class="col-12 col-md-6">
+          <div class="col-12">
             <label for="guestEmail" class="form-label">Email address *</label>
             <input class="form-control" id="guestEmail" type="email" name="email" autocomplete="email" required maxlength="160">
           </div>
-          <div class="col-12 col-md-6">
-            <label for="guestPhone" class="form-label">Phone number</label>
-            <input class="form-control" id="guestPhone" name="contact" autocomplete="tel" maxlength="160" placeholder="Optional phone number">
-          </div>
-          <div class="col-12 col-md-6">
-            <label for="guestRole" class="form-label">Your role</label>
-            <select class="form-select" id="guestRole" name="role">
-              <option value="">Select a role</option>
-              <option value="Guest">Guest</option>
-              <option value="Parent">Parent</option>
-              <option value="Alumni Parent">Alumni Parent</option>
-              <option value="Alumni">Alumni</option>
-              <option value="Staff">Staff</option>
-            </select>
-          </div>
+          <div class="col-12">
+            <label for="guestPhone" class="form-label">Phone number *</label>
+            <input class="form-control" id="guestPhone" name="contact" autocomplete="tel" required maxlength="160" placeholder="Phone number">
           <div class="col-12">
             <span class="form-label d-block mb-2">Your response *</span>
             <div class="d-flex flex-wrap gap-3">
@@ -212,15 +199,6 @@
               </div>
             </div>
           </div>
-          <div class="col-12" id="guestCountWrap">
-            <label for="extraGuests" class="form-label">Add guest(s)</label>
-            <select class="form-select" id="extraGuests" name="additional_guests">
-              <option value="0">None — just me</option>
-              <option value="1">1 additional guest</option>
-              <option value="2">2 additional guests</option>
-            </select>
-            <div class="mt-2 note" id="attendanceSummary" aria-live="polite">Total expected attendees: 1</div>
-          </div>
           <div class="col-12">
             <label for="message" class="form-label">Note (optional)</label>
             <textarea class="form-control" id="message" name="message" rows="3" maxlength="500" placeholder="Please enter the name of your guest, and any information you'd like the organisers to know"></textarea>
@@ -231,14 +209,9 @@
           </div>
         </div>
       </form>
-      <div id="successMessage" class="alert alert-success mt-4 hidden" role="status">
-        Thank you. Your response has been submitted.
-        <div class="mt-3">
-          <a class="btn btn-outline-red" href="#" id="successAddToCalendarBtn" target="_blank" rel="noopener">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Add to Google Calendar
-          </a>
+        <div class="alert alert-success mt-4 hidden" id="successMessage" role="status">
+          Thank you. Your response has been submitted.
         </div>
-      </div>
     </section>
     <footer class="text-center mt-4">The Cradle Schools · 20th Anniversary Celebration</footer>
   </main>

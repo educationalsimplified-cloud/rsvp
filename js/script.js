@@ -109,9 +109,6 @@ initSlideshow();
 /* ---------- RSVP form (rsvp.html) ---------- */
 const accept = document.getElementById('accept');
 const decline = document.getElementById('decline');
-const guestCountWrap = document.getElementById('guestCountWrap');
-const extraGuests = document.getElementById('extraGuests');
-const attendanceSummary = document.getElementById('attendanceSummary');
 const form = document.getElementById('rsvpForm');
 const submitBtn = document.getElementById('submitBtn');
 const successMessage = document.getElementById('successMessage');
@@ -136,26 +133,6 @@ function buildGoogleCalendarUrl() {
 const calendarUrl = buildGoogleCalendarUrl();
 if (successAddToCalendarBtn) successAddToCalendarBtn.href = calendarUrl;
 
-function updateRsvpState() {
-  if (!accept || !decline || !guestCountWrap || !extraGuests || !attendanceSummary) return;
-  const isAccepting = accept.checked;
-  guestCountWrap.classList.toggle('hidden', !isAccepting);
-  extraGuests.disabled = !isAccepting;
-  extraGuests.required = isAccepting;
-  if (!isAccepting) extraGuests.value = '0';
-  updateAttendanceSummary();
-}
-
-function updateAttendanceSummary() {
-  if (!attendanceSummary) return;
-  const total = accept.checked ? 1 + Number(extraGuests.value || 0) : 0;
-  attendanceSummary.textContent = 'Total expected attendees for this response: ' + total;
-}
-
-if (accept) accept.addEventListener('change', updateRsvpState);
-if (decline) decline.addEventListener('change', updateRsvpState);
-if (extraGuests) extraGuests.addEventListener('change', updateAttendanceSummary);
-
 if (form) {
   form.addEventListener('submit', function (event) {
     event.preventDefault();
@@ -168,30 +145,36 @@ if (form) {
     if (successMessage) successMessage.classList.add('hidden');
 
     /*
-     * Netlify Forms AJAX submission.
+     * Submit to Netlify Function (submit-rsvp) for duplicate checking.
      * Body is URL-encoded via FormData → URLSearchParams → string.
-     * Netlify Forms does NOT accept JSON bodies.
      */
-    fetch("/", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    fetch('/.netlify/functions/submit-rsvp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams(formData).toString()
     })
-      .then(() => {
+      .then(response => response.json())
+      .then(result => {
+        if (result.error) {
+          // Duplicate or other error
+          alert(result.error);
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit RSVP';
+          return;
+        }
         console.log("Form successfully submitted");
         myForm.reset();
-        updateRsvpState();
         if (successMessage) {
           successMessage.classList.remove('hidden');
           // Calendar option appears only after a successful registration
           if (successAddToCalendarBtn) successAddToCalendarBtn.href = calendarUrl;
         }
       })
-      .catch(error => alert(error))
-      .finally(() => {
+      .catch(error => {
+        console.error(error);
+        alert('An error occurred. Please try again.');
         submitBtn.disabled = false;
         submitBtn.textContent = 'Submit RSVP';
       });
   });
-  updateRsvpState();
 }
